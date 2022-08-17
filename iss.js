@@ -41,16 +41,14 @@ const fetchMyIP = function(callback) {
 const fetchCoordsByIP = function(ip, callback) {
   request(`http://ipwho.is/${ip}`, (error, response, body) => {
   
-  // error can be set if invalid domain, user is offline, etc.
   if (error) {
     callback(error, null);
     return;
   }
 
-  // parse the returned body so we can check its information
   const parsedBody = JSON.parse(body);
-    // check if "success" is true or not
-    if (!parsedBody.success) {
+
+  if (!parsedBody.success) {
       const message = `Success status was ${parsedBody.success}. Server message says: ${parsedBody.message} when fetching for IP ${parsedBody.ip}`;
       callback(Error(message), null);
       return;
@@ -92,5 +90,43 @@ const fetchISSFlyOverTimes = function(coords, callback) {
   }); 
 };
 
+/**
+ * Orchestrates multiple API requests in order to determine the next 5 upcoming ISS fly overs for the user's current location.
+ * Input:
+ *   - A callback with an error or results. 
+ * Returns (via Callback):
+ *   - An error, if any (nullable)
+ *   - The fly-over times as an array (null if error):
+ *     [ { risetime: <number>, duration: <number> }, ... ]
+ */ 
 
-module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes };
+const nextISSTimesForMyLocation = function(callback) {
+
+  fetchMyIP((error, ip) => {
+    if (error) {
+      callback(error, null);
+      return;
+    }
+
+    fetchCoordsByIP(ip, (error, loc) => {
+      if (error) {
+        callback(error, null);
+        return;
+      }
+
+      fetchISSFlyOverTimes(loc, (error, nextPasses) => {
+        if (error) {
+          callback(error, null);
+          return;
+        }
+
+        callback(null, nextPasses);
+
+      });
+    });
+  });  
+};
+
+module.exports = { nextISSTimesForMyLocation };
+
+// module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes};
