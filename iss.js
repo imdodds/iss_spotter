@@ -5,6 +5,7 @@
  * Returns (via Callback):
  *  - An error, if any (nullable)
  *  - The IP address as a string (null if error). Example: "162.245.144.188"
+ *  - The latitude and longitude as an object (null if error). Example: { latitude: "49.27670", longitude: "-123.13000" }
  */
 
 const request = require('request');
@@ -27,4 +28,29 @@ const fetchMyIP = function(callback) {
   });
 };
 
-module.exports = { fetchMyIP };
+const fetchCoordsByIP = function(ip, callback) {
+  request(`http://ipwho.is/${ip}`, (error, response, body) => {
+  
+  // error can be set if invalid domain, user is offline, etc.
+  if (error) {
+    callback(error, null);
+    return;
+  }
+
+  // parse the returned body so we can check its information
+  const parsedBody = JSON.parse(body);
+    // check if "success" is true or not
+    if (!parsedBody.success) {
+      const message = `Success status was ${parsedBody.success}. Server message says: ${parsedBody.message} when fetching for IP ${parsedBody.ip}`;
+      callback(Error(message), null);
+      return;
+    }
+
+    const { latitude, longitude } = parsedBody;
+
+    callback(null, {latitude, longitude});
+
+  });
+};
+
+module.exports = { fetchMyIP, fetchCoordsByIP };
